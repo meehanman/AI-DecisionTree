@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -18,7 +19,7 @@ public class Data {
 			
 			System.out.println("<< "+name+".txt loaded");
 		} else {
-			System.out.println("Failed");
+			System.out.println("Data must be test or train");
 		}
 	}
 
@@ -46,8 +47,19 @@ public class Data {
 		return data.get(row)[column];
 	}
 	
+	public void set(int row,int column, float value){
+		data.get(row)[column] = value;
+	}
+	
+	public void setRow(int row, float[] value){
+		data.set(row, value);
+	}
+	
 	public float[] getRow(int row){
 		return data.get(row);
+	}
+	public void printRow(int row){
+		System.out.println(Arrays.toString(getRow(row)));
 	}
 	
 	public float[] getColumn(int column){
@@ -57,6 +69,34 @@ public class Data {
 			columnArr[i++] = row[column];
 		}
 		return columnArr;
+	}
+	public void printColumn(int column){
+		System.out.println(Arrays.toString(getRow(column)));
+	}
+	
+	public void save(String filename,boolean integer){
+		try{
+		    PrintWriter writer = new PrintWriter("data/output/" + this.name + "-"+filename+".txt");
+		    String outputLine = "";
+		    for(int i=0;i<this.columnLength;i++){
+		    	outputLine = "";
+		    	for(int o=0;o<this.rowLength;o++){
+		    		float value = get(i,o);
+		    		//Ensure the DP is at most 6DP
+		    		if(!integer){
+		    			outputLine += String.format("%.6f ", value);
+		    		}else{
+		    			outputLine += Math.round(value)+" ";
+		    		}
+		    	}
+		    	writer.println(outputLine);
+		    }
+		    writer.close();
+		    System.out.println(">> "+this.name+".txt saved to '"+"data/output/" + this.name + "-"+filename+".txt'");
+		} catch (IOException e) {
+			System.out.println(">> Error saving "+this.name+".txt");
+			System.out.println(e);
+		}
 	}
 
 }
