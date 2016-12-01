@@ -1,33 +1,62 @@
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Data {
 
-	public String train;
-	public String test;
-	public Data() {
-		this.test = read("test");
+	final int rowLength = 14;
+	int columnLength = 0;
+	String name = null;
+	ArrayList<float[]> data = new ArrayList<float[]>();
+
+	public Data(String name) {
+		if (name == "test" || name == "train") {
+			this.name = name;
+			read(name);
+			
+			System.out.println("<< "+name+".txt loaded");
+		} else {
+			System.out.println("Failed");
+		}
+	}
+
+	private void read(String s) {
+		try {
+			for (String line : Files.readAllLines(Paths.get("data/" + s + ".txt"))) {
+				float[] row = new float[rowLength];
+				for (int n = 0; n < rowLength; n++) {
+					row[n] = Float.valueOf(line.split(" ")[n]);
+				}
+				data.add(row);
+			}
+			this.columnLength = data.size();
+		} catch (IOException e) {
+		}
+	}
+
+	public void print() {
+		for (float[] row : data) {
+			System.out.println(Arrays.toString(row));
+		}
 	}
 	
-	public static String read(String s){
-		try (BufferedReader br = new BufferedReader(new FileReader("data/"+s+".txt")))
-		{
-			String save = null;
-			String sCurrentLine;
-			int lines = 0;
-			while ((sCurrentLine = br.readLine()) != null) {
-				lines++;
-				save+=sCurrentLine;
-			}
-			System.out.println(lines+" lines loaded for "+s+".");
-			return save;
-
-		} catch (IOException e) {
-			e.printStackTrace();
+	public float get(int row,int column){
+		return data.get(row)[column];
+	}
+	
+	public float[] getRow(int row){
+		return data.get(row);
+	}
+	
+	public float[] getColumn(int column){
+		float[] columnArr = new float[columnLength];
+		int i = 0;
+		for (float[] row : data) {
+			columnArr[i++] = row[column];
 		}
-		return s+" failed";
-
+		return columnArr;
 	}
 
 }
