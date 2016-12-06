@@ -76,7 +76,13 @@ public class Data {
 	
 	public void save(String filename,boolean integer){
 		try{
-		    PrintWriter writer = new PrintWriter("data/output/" + this.name + "-"+filename+".txt");
+			String FileName;
+			if(!integer){
+				FileName = "data/output/" + this.name + "-"+filename+".txt";
+			}else{
+				FileName = "data/output/" + this.name + "-"+filename+"-int.txt";
+			}
+			PrintWriter writer = new PrintWriter(FileName);
 		    String outputLine = "";
 		    for(int i=0;i<this.columnLength;i++){
 		    	outputLine = "";
@@ -84,7 +90,8 @@ public class Data {
 		    		float value = get(i,o);
 		    		//Ensure the DP is at most 6DP
 		    		if(!integer){
-		    			outputLine += String.format("%.6f ", value);
+		    			outputLine += new Float(value).toString().replaceAll("\\.?0*$", "");
+		    			outputLine += " ";
 		    		}else{
 		    			outputLine += Math.round(value)+" ";
 		    		}
@@ -92,7 +99,7 @@ public class Data {
 		    	writer.println(outputLine);
 		    }
 		    writer.close();
-		    System.out.println(">> "+this.name+".txt saved to '"+"data/output/" + this.name + "-"+filename+".txt'");
+		    System.out.println(">> "+this.name+".txt saved to '"+FileName);
 		} catch (IOException e) {
 			System.out.println(">> Error saving "+this.name+".txt");
 			System.out.println(e);
