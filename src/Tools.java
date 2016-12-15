@@ -21,7 +21,7 @@ public class Tools {
 		count(d,3);
 	}
 	
-	public static boolean contains(final float[] arr, final int key) {
+	public static boolean contains(final int[] arr, final int key) {
 	    return Arrays.stream(arr).anyMatch(i -> i == key);
 	}
 }

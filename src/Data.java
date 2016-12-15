@@ -93,7 +93,13 @@ public class Data {
 		    			outputLine += new Float(value).toString().replaceAll("\\.?0*$", "");
 		    			outputLine += " ";
 		    		}else{
-		    			outputLine += Math.round(value)+" ";
+		    			//outputLine += Math.round(value)+" ";
+		    			//Fuzzy Logic
+		    			if(value>=1.4){
+		    				outputLine += "2 ";
+		    			}else{
+		    				outputLine += "1 ";
+		    			}
 		    		}
 		    	}
 		    	writer.println(outputLine);

@@ -1,225 +1,159 @@
-import java.util.*;
+import java.util.Arrays;
+import java.util.Comparator;
 
-public class Knn {
-	public static final String PATH_TO_DATA_FILE = "coupious.data";
-	public static final int NUM_ATTRS = 9;
-	public static final int K = 262;
+public class KNN {
 
-	public static final int CATEGORY_INDEX = 0;
-	public static final int DISTANCE_INDEX = 1;
-	public static final int EXPIRATION_INDEX = 2;
-	public static final int HANDSET_INDEX = 3;
-	public static final int OFFER_INDEX = 4;
-	public static final int WSACTION_INDEX = 5;
-	public static final int NUM_RUNS = 1000;
-	public static double averageDistance = 0;
-
-	public static void main(String[] args) {
-		ArrayList instances = null;
-		ArrayList distances = null;
-		ArrayList neighbors = null;
-		WSAction.Action classification = null;
-		Instance classificationInstance = null;
-		FileReader reader = null;
-		int numRuns = 0, truePositives = 0, falsePositives = 0, falseNegatives = 0, trueNegatives = 0;
-		double precision = 0, recall = 0, fMeasure = 0;
-
-		falsePositives = 1;
-
-		reader = new FileReader(PATH_TO_DATA_FILE);
-		instances = reader.buildInstances();
-
-		do {
-			classificationInstance = extractIndividualInstance(instances);
-
-			distances = calculateDistances(instances, classificationInstance);
-			neighbors = getNearestNeighbors(distances);
-			classification = determineMajority(neighbors);
-
-			System.out.println("Gathering " + K + " nearest neighbors to:");
-			printClassificationInstance(classificationInstance);
-
-			printNeighbors(neighbors);
-			System.out.println("\nExpected situation result for instance: " + classification.toString());
-
-			if(classification.toString().equals(((WSAction)classificationInstance.getAttributes().get(WSACTION_INDEX)).getAction().toString())) {
-				truePositives++;
-			}
-			else {
-				falseNegatives++;
-			}
-			numRuns++;
-
-			instances.add(classificationInstance);
-		} while(numRuns &lt; NUM_RUNS);
-
-		precision = ((double)(truePositives / (double)(truePositives + falsePositives)));
-		recall = ((double)(truePositives / (double)(truePositives + falseNegatives)));
-		fMeasure = ((double)(precision * recall) / (double)(precision + recall));
-
-		System.out.println("Precision: " + precision);
-		System.out.println("Recall: " + recall);
-		System.out.println("F-Measure: " + fMeasure);
-		System.out.println("Average distance: " + (double)(averageDistance / (double)(NUM_RUNS * K)));
-	}
-
-	public static Instance extractIndividualInstance(ArrayList instances) {
-		Random generator = new Random(new Date().getTime());
-		int random = generator.nextInt(instances.size() - 1);
-
-		Instance singleInstance = instances.get(random);
-		instances.remove(random);
-
-		return singleInstance;
-	}
-
-	public static void printClassificationInstance(Instance classificationInstance) {
-		for(Feature f : classificationInstance.getAttributes()) {
-			System.out.print(f.getName() + ": ");
-			if(f instanceof Category) {
-				System.out.println(((Category)f).getCategory().toString());
-			}
-			else if(f instanceof Distance) {
-				System.out.println(((Distance)f).getDistance().toString());
-			}
-			else if (f instanceof Expiration) {
-				System.out.println(((Expiration)f).getExpiry().toString());
-			}
-			else if (f instanceof Handset) {
-				System.out.print(((Handset)f).getOs().toString() + ", ");
-				System.out.println(((Handset)f).getDevice().toString());
-			}
-			else if (f instanceof Offer) {
-				System.out.println(((Offer)f).getOfferType().toString());
-			}
-			else if (f instanceof WSAction) {
-				System.out.println(((WSAction)f).getAction().toString());
-			}
-		}
-	}
-
-	public static void printNeighbors(ArrayList neighbors) {
-		int i = 0;
-		for(Neighbor neighbor : neighbors) {
-			Instance instance = neighbor.getInstance();
-
-			System.out.println("\nNeighbor " + (i + 1) + ", distance: " + neighbor.getDistance());
-			i++;
-			for(Feature f : instance.getAttributes()) {
-				System.out.print(f.getName() + ": ");
-				if(f instanceof Category) {
-					System.out.println(((Category)f).getCategory().toString());
+	// Loop through each row, and column in a set
+		// looking for a value of 0, then look through the train
+		// set for a similar row i.e.
+		// 1 1 1 1 0 1 1 1 <-- Missing 0
+		// 1 1 1 1 2 1 1 1 <-- Has a 2 instead
+		public static void KnnAttempt1() {
+			for (int i = 0; i < ai.test.columnLength; i++) {
+				float[] row = ai.test.getRow(i);
+				int missingValLoc = -1;
+				// Loop through each value in this row
+				for (int o = 0; o < row.length; o++) {
+					float value = row[o];
+					int valInt = Math.round(value);
+					if (missingValLoc != -1 && valInt == 0) {
+						///If the happens, all hell breaks loose
+						System.out.println("More than one missing value");
+						return;
+					}
+					if (valInt == 0) {
+						missingValLoc = o;
+					}
 				}
-				else if(f instanceof Distance) {
-					System.out.println(((Distance)f).getDistance().toString());
-				}
-				else if (f instanceof Expiration) {
-					System.out.println(((Expiration)f).getExpiry().toString());
-				}
-				else if (f instanceof Handset) {
-					System.out.print(((Handset)f).getOs().toString() + ", ");
-					System.out.println(((Handset)f).getDevice().toString());
-				}
-				else if (f instanceof Offer) {
-					System.out.println(((Offer)f).getOfferType().toString());
-				}
-				else if (f instanceof WSAction) {
-					System.out.println(((WSAction)f).getAction().toString());
-				}
-			}
-		}
-	}
-
-	public static WSAction.Action determineMajority(ArrayList neighbors) {
-		int yea = 0, ney = 0;
-
-		for(int i = 0; i &lt; neighbors.size(); i++) { 			Neighbor neighbor = neighbors.get(i); 			Instance instance = neighbor.getInstance(); 			if(instance.isRedeemed()) { 				yea++; 			} 			else { 				ney++; 			} 		} 		 		if(yea &gt; ney) {
-			return WSAction.Action.Redeem;
-		}
-		else {
-			return WSAction.Action.Hit;
-		}
-	}
-
-	public static ArrayList getNearestNeighbors(ArrayList distances) {
-		ArrayList neighbors = new ArrayList();
-
-		for(int i = 0; i &lt; K; i++) {
-			averageDistance += distances.get(i).getDistance();
-			neighbors.add(distances.get(i));
-		}
-
-		return neighbors;
-	}
-
-	public static ArrayList calculateDistances(ArrayList instances, Instance singleInstance) {
-		ArrayList distances = new ArrayList();
-		Neighbor neighbor = null;
-		int distance = 0;
-
-		for(int i = 0; i &lt; instances.size(); i++) {
-			Instance instance = instances.get(i);
-			distance = 0;
-			neighbor = new Neighbor();
-
-			// for each feature, go through and calculate the "distance"
-			for(Feature f : instance.getAttributes()) {
-				if(f instanceof Category) {
-					Category.Categories cat = ((Category) f).getCategory();
-					Category singleInstanceCat = (Category)singleInstance.getAttributes().get(CATEGORY_INDEX);
-					distance += Math.pow((cat.ordinal() - singleInstanceCat.getCategory().ordinal()), 2);
-				}
-				else if(f instanceof Distance) {
-					Distance.DistanceRange dist = ((Distance) f).getDistance();
-					Distance singleInstanceDist = (Distance)singleInstance.getAttributes().get(DISTANCE_INDEX);
-					distance += Math.pow((dist.ordinal() - singleInstanceDist.getDistance().ordinal()), 2);
-				}
-				else if (f instanceof Expiration) {
-					Expiration.Expiry exp = ((Expiration) f).getExpiry();
-					Expiration singleInstanceExp = (Expiration)singleInstance.getAttributes().get(EXPIRATION_INDEX);
-					distance += Math.pow((exp.ordinal() - singleInstanceExp.getExpiry().ordinal()), 2);
-				}
-				else if (f instanceof Handset) {
-					// there are two calculations needed here, one for device, one for OS
-					Handset.Device device = ((Handset) f).getDevice();
-					Handset singleInstanceDevice = (Handset)singleInstance.getAttributes().get(HANDSET_INDEX);
-					distance += Math.pow((device.ordinal() - singleInstanceDevice.getDevice().ordinal()), 2);
-
-					Handset.OS os = ((Handset) f).getOs();
-					Handset singleInstanceOs = (Handset)singleInstance.getAttributes().get(HANDSET_INDEX);
-					distance += Math.pow((os.ordinal() - singleInstanceOs.getOs().ordinal()), 2);
-				}
-				else if (f instanceof Offer) {
-					Offer.OfferType offer = ((Offer) f).getOfferType();
-					Offer singleInstanceOffer = (Offer)singleInstance.getAttributes().get(OFFER_INDEX);
-					distance += Math.pow((offer.ordinal() - singleInstanceOffer.getOfferType().ordinal()), 2);
-				}
-				else if (f instanceof WSAction) {
-					WSAction.Action action = ((WSAction) f).getAction();
-					WSAction singleInstanceAction = (WSAction)singleInstance.getAttributes().get(WSACTION_INDEX);
-					distance += Math.pow((action.ordinal() - singleInstanceAction.getAction().ordinal()), 2);
-				}
-				else {
-					System.out.println("Unknown category in distance calculation.  Exiting for debug: " + f);
-					System.exit(1);
-				}
-			}
-			neighbor.setDistance(distance);
-			neighbor.setInstance(instance);
-
-			distances.add(neighbor);
-		}
-
-		for (int i = 0; i &lt; distances.size(); i++) {
-			for (int j = 0; j &lt; distances.size() - i - 1; j++) { 				if(distances.get(j).getDistance() &gt; distances.get(j + 1).getDistance()) {
-					Neighbor tempNeighbor = distances.get(j);
-					distances.set(j, distances.get(j + 1));
-					distances.set(j + 1, tempNeighbor);
+				// Take this row and search through train for a similar row
+				if (missingValLoc != -1) {
+					// findRowInTrain(i,missingValLoc);
+					Fournn(i, missingValLoc);
+					//return;
+				} else {
+					System.out.println("No Missing Value Locations");
 				}
 			}
 		}
 
-		return distances;
-	}
-
+		/**
+		 * Takes in a row and position of 0
+		 * Compares the row to every row in train and forwards the results to 
+		 * to another function to run tests. 
+		 * @param rowLocation Location of missing row of (0)
+		 * @param valLocation Location of missing position in the row
+		 * 
+		 * EXAMPLE: Fournn(2,10)
+		 * -------- getTallyFromScoreForNResults(  [[65,4], ... ,[233,13]], 10, 
+		 */
+		public static void Fournn(int rowLocation, int valLocation) {
+			// train <- Training Data to compare
+			// test <- row that is missing a 1
+			float[] testRow = ai.test.getRow(rowLocation);
+			float[] trainRow = null;
+			int[][] scores = new int[ai.train.columnLength][2];
+			// System.out.println("Looking for matches for this
+			// row:\n\t\t>"+Arrays.toString(testRow));
+			// Loop through to get rows of train data set
+			for (int columnNum = 0; columnNum < ai.train.columnLength; columnNum++) {
+				// Set current row
+				trainRow = ai.train.getRow(columnNum);
+				int thisRowScore = 0;
+				for (int RowNum = 0; RowNum < trainRow.length; RowNum++) {
+					// If the values match, then increase score
+					if (trainRow[RowNum] == testRow[RowNum]) {
+						thisRowScore++;
+					}
+				}
+				// Row Calculated for row n
+				scores[columnNum][0] = columnNum;
+				scores[columnNum][1] = thisRowScore;
+			}
+			
+			//WINNER 🤶🏿for Zero-One (0.1033) vs 0.0709
+			ai.FileName = "14-dec-16-NResults50-ZeroOne"; 
+			int result[] = getTallyFromScoreForNResults(scores,valLocation,50);		
+			ai.test.set(rowLocation, valLocation, getBestResultFromTwoValues(result[1],result[2]));
+			
+			//Black Santa (0.25323) vs 0.23612
+			//ai.FileName = "14-dec-NResults15-BlackSanta";
+			//int result[] = getTallyFromScoreForNResults(scores,valLocation,15);	
+			//ai.test.set(rowLocation, valLocation, getBestResultFromTwoValues(result[1],result[2]));
+		}
+		
+		/**
+		 * 
+		 * @param one
+		 * @param two
+		 * @return
+		 */
+		public static float getBestResultFromTwoValues(int one, int two){
+			int total = one + two;
+			float oneDtwoPlusOne = ((float)two/(float)total);
+			oneDtwoPlusOne=(float)oneDtwoPlusOne+1f;
+			System.out.println(one+"+"+two+"="+total+"; two/total="+(oneDtwoPlusOne-1f)+" +1="+(oneDtwoPlusOne));
+			return oneDtwoPlusOne;
+		}
+		/**
+		 * Input an array [[65,4], ... ,[233,13]] and this 
+		 * function will sort it in reverse order of score,
+		 * then return a tally of the value of valLocation
+		 * found in the top n results.
+		 * @param scores
+		 * @param valLocation
+		 * @param n - The number of results to compare
+		 */
+		public static int[] getTallyFromScoreForNResults(int[][] scores,int valLocation, int n){
+			//Sort score array into order smallest to largest i.e. [[65,4], ... ,[233,13]] 
+			// where the last value is the top result trainRow[233] with score 13
+			Arrays.sort(scores, Comparator.comparingInt(arr -> arr[1]));
+			int[] scoreResult = new int[3];
+			//Get top/last n scores from scores
+			for(int i=scores.length-1;i>=scores.length-n;i--){
+				//System.out.println(Arrays.toString(scores[i])+" > "+Arrays.toString(train.getRow(scores[i][0])) +" "+train.getRow(scores[i][0])[valLocation]);
+				scoreResult[Math.round(ai.train.getRow(scores[i][0])[valLocation])]++;
+			}
+			//This will output an array like [0, 28, 2] denoting 0 0's found, 28 1's found and 2 2's found
+			System.out.println(Arrays.toString(scoreResult));
+			return scoreResult;
+		}
+		/**
+		 * Input an array [[65,4], ... ,[233,13]] and this 
+		 * function will sort it in reverse order of score,
+		 * then return a tally of the value of valLocation
+		 * found in the top n scores ie n=3 would return the 
+		 * tally for the rows with a score of 14,12 and 10 (ie top 3 scores)
+		 * n=4 would return the tally for rows with a score of 14,12,10,9
+		 * @param scores
+		 * @param valLocation
+		 * @param n - The number of nearest Neigbours to compare
+		 */
+		public static int[] getTallyFromScoreForNScore(int[][] scores,int valLocation, int n, int max){
+			//Sort score array into order smallest to largest i.e. [[65,4], ... ,[233,13]] 
+			// where the last value is the top result trainRow[233] with score 13
+			Arrays.sort(scores, Comparator.comparingInt(arr -> arr[1]));
+			int[] scoreResult = new int[3];
+			int currentScore = -1;
+			//Get top/last n scores from scores
+			for(int i=scores.length-1;i>=scores.length-51;i--){
+				//Expose the values
+				int[] thisTrainRowAndScore = scores[i];
+				int thisRowLocation = thisTrainRowAndScore[0];
+				int thisRowScore = thisTrainRowAndScore[1];
+				int thisRowVal = (int) ai.train.getRow(scores[i][0])[valLocation];
+				//System.out.println(Arrays.toString(thisTrainRowAndScore)+" > "+Arrays.toString(train.getRow(thisRowLocation)) +" "+thisRowVal);
+				//If statement to decreate N if the next score is different
+				if(currentScore != thisRowScore){
+					currentScore = thisRowScore;
+					//System.out.println("Score is "+currentScore);
+					n--;	
+				}
+				//If we have captured n different scores
+				if(n<0){break;}
+				scoreResult[thisRowVal]++;
+			}
+			//This will output an array like [0, 28, 2] denoting 0 0's found, 28 1's found and 2 2's found
+			System.out.println(Arrays.toString(scoreResult));
+			return scoreResult;
+		}
 }
